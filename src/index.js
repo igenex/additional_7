@@ -1,4 +1,4 @@
-/*module.exports = */
+/* module.exports = */
 function solveSudoku(matrix) {
   // your solution
   let sudokuSolver = {
@@ -27,12 +27,12 @@ function solveSudoku(matrix) {
 
         this.findZeroPosition(i, k);
       }
-      console.log("Positions\r\n=================")
+/*      console.log("Positions\r\n=================")
       console.log(this.positions);
       console.log("cubeMatrix\r\n=================")
       console.log(this.cubeMatrix);
       console.log("modifiedSudoku\r\n=================")
-      console.log(this.modifiedSudoku);
+      console.log(this.modifiedSudoku);*/
     },
     getIterator(max, repeat) {
       "use strict";
@@ -86,43 +86,23 @@ function solveSudoku(matrix) {
     },
     findInRow(rowNumber, colNumber) {
       "use strict";
-      if (!this.findInRow.cache) this.findInRow.cache = [];
-      try{
-      if (!this.findInRow.cache[rowNumber] ||
-        (this.modifiedSudoku[rowNumber][colNumber][1].length !== this.findInRow.cache[rowNumber].length)) {
-        this.findInRow.cache[rowNumber] = this.matrix[rowNumber].filter(num => num > 0);
-      }
-      } catch (e) {
-        console.log(`Значение :this.modifiedSudoku[rowNumber][colNumber] - ${this.modifiedSudoku[rowNumber][colNumber]}
-                     Значение rowNumber: ${rowNumber}
-                     Значение colNumber: ${colNumber}`);
-      }
-
-      return this.findInRow.cache[rowNumber];
+      return this.matrix[rowNumber].filter(num => num > 0);
 
     },
     findInCol(colNumber, rowNumber, rowNumberArray) {
       "use strict";
-      if (!this.findInCol.cache) this.findInCol.cache = [];
 
-      if (!this.findInCol.cache[colNumber] ||
-        (this.modifiedSudoku[rowNumber][colNumber][1].length !== this.findInCol.cache[colNumber].length)
-      ) {
+      let tempColArray = [];
+      this.matrix.forEach(row => {
+        tempColArray.push(row[colNumber]);
+      });
 
-        let tempColArray = [];
-        this.matrix.forEach(row => {
-          tempColArray.push(row[colNumber]);
-        });
+      return tempColArray.filter(num => {
+        if (!~rowNumberArray.indexOf(num) && num > 0) {
+          return true;
+        }
+      });
 
-        this.findInCol.cache[colNumber] = tempColArray.filter(num => {
-          if (!~rowNumberArray.indexOf(num) && num > 0) {
-            return true;
-          }
-        });
-
-      }
-
-      return this.findInCol.cache[colNumber];
     },
     findCubePositionByNumberCoords(row, column) {
       "use strict";
@@ -149,22 +129,14 @@ function solveSudoku(matrix) {
     findInCube(row, column, numbersInAColumn, numbersInARow) {
       "use strict";
       let cubePosition = this.findCubePositionByNumberCoords(row, column);
-      let keyWord = [row, column].toString();
 
-      if (!this.findInCube.cache) this.findInCube.cache = [];
-
-      if (!this.findInCube.cache[keyWord] ||
-        this.modifiedSudoku[row][column][1].length !== this.findInRow.cache[keyWord].length) {
-        this.findInCol.cache[keyWord] = this.cubeMatrix[cubePosition].filter(num => {
-          if (!~numbersInAColumn.indexOf(num) && num > 0) {
-            if (!~numbersInARow.indexOf(num)) {
-              return true;
-            }
+      return this.cubeMatrix[cubePosition].filter(num => {
+        if (!~numbersInAColumn.indexOf(num) && num > 0) {
+          if (!~numbersInARow.indexOf(num)) {
+            return true;
           }
-        });
-      }
-
-      return this.findInCol.cache[keyWord];
+        }
+      });
     },
     findRequiredNumer(array) {
       "use strict";
@@ -174,54 +146,53 @@ function solveSudoku(matrix) {
           return i + 1;
         }
       }
+      return 9;
     },
     solver() {
       "use strict";
-        console.log(`Значение positions: ${this.positions[0]}`);
-        this.positions.forEach((number, i) => {
-          //this
-          let [row, column] = number;
-          let numbersInARow = this.findInRow(row, column);
-          let numbersInAColumn = this.findInCol(column, row, numbersInARow);
-          let numbersInACube = this.findInCube(row, column, numbersInAColumn, numbersInARow);
-          let allNumbers = [...numbersInARow, ...numbersInAColumn, ...numbersInACube];
-          allNumbers.sort((a, b) => a - b);
-          this.modifiedSudoku[row][column][1].push(...allNumbers);
+      for (let i = 0, max = this.positions.length; i < max; i++) {
 
-          //Если у позиции остался один вариант то вычисляем и ставим его
-          if (this.modifiedSudoku[row][column][1].length === 8) {
-            //Вычисляем и ставим число вместо 0
-            let requiredNumber = this.findRequiredNumer(this.modifiedSudoku[row][column][1]);
-            this.modifiedSudoku[row][column][0] = requiredNumber;
-            this.matrix[row][column] = requiredNumber;
-            this.positions[i].splice(i, 1);
-          }
-        });
-        console.log(this.modifiedSudoku);
+        let [row, column] = this.positions[i];
+        let numbersInARow = this.findInRow(row, column);
+        let numbersInAColumn = this.findInCol(column, row, numbersInARow);
+        let numbersInACube = this.findInCube(row, column, numbersInAColumn, numbersInARow);
+        let allNumbers = [];
+        allNumbers = [...numbersInARow, ...numbersInAColumn, ...numbersInACube];
+        allNumbers.sort((a, b) => a - b);
+        this.modifiedSudoku[row][column][1]= allNumbers;
+
+        //Если у позиции остался один вариант то вычисляем и ставим его
+        if (this.modifiedSudoku[row][column][1].length === 8) {
+          //Вычисляем и ставим число вместо 0
+          let requiredNumber = this.findRequiredNumer(this.modifiedSudoku[row][column][1]);
+          this.modifiedSudoku[row][column][0] = requiredNumber;
+          this.matrix[row][column] = requiredNumber;
+          this.positions[i] = [];
+        }
+        console.log(`position: ${[row]}_${[column]} - ${this.modifiedSudoku[row][column][0]} : ${this.modifiedSudoku[row][column][1]}`);
+      }
+      this.positions = this.positions.filter(item => item.length > 0);
+      console.log(`Остаток: ${this.positions.length}`);
+      console.log(this.positions);
     },
     solverIterate() {
       "use strict";
-      while(this.positions.length > 0) {
+      let max = 1;
+      while (this.positions.length > 0 && max < 4) {
         this.solver();
+        max++;
       }
+      console.log(this.matrix);
+      console.log(this.modifiedSudoku[1][1]);
+      return this.matrix;
     }
   };
   let solver = Object.create(sudokuSolver);
   solver.init(matrix);
   solver.solverIterate();
+};
 
-}
 
-/*let sudoku1 = [[5, 3, 4, 6, 7, 8, 9, 0, 0],
-               [6, 7, 2, 1, 9, 5, 3, 4, 8],
-               [1, 9, 8, 3, 4, 2, 5, 6, 7],
-               [8, 5, 9, 7, 6, 1, 4, 2, 3],
-               [4, 2, 6, 8, 5, 3, 7, 9, 1],
-               [7, 1, 3, 9, 2, 4, 8, 5, 6],
-               [9, 6, 1, 5, 3, 7, 2, 8, 4],
-               [2, 8, 7, 4, 1, 9, 6, 3, 5],
-               [3, 4, 5, 2, 8, 6, 1, 7, 9]];
-*/
 let sudoku2 = [[6, 5, 0, 7, 3, 0, 0, 8, 0],
   [0, 0, 0, 4, 8, 0, 5, 3, 0],
   [8, 4, 0, 9, 2, 5, 0, 0, 0],
