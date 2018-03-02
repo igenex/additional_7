@@ -13,6 +13,7 @@ function solveSudoku(matrix) {
     this.cubeNumberCoords = [];
     this.hiddenLoner = false;
     this.error = [];
+    this.numberInsered = false;
 
   }
 
@@ -190,19 +191,26 @@ function solveSudoku(matrix) {
         tempColArray.push(row[colNumber][0]);
       }
 
-      if (i !== rowNumber && row[colNumber][1]) {
+      if (/*i !== rowNumber && */row[colNumber][1]) {
         tempColArrayCandidats.push([row[colNumber][1], [i, colNumber]]);
       }
     });
 
-    this.countCandidats(tempColArrayCandidats);
-
+    tempColArrayCandidats.forEach((array, i) => {
+      tempColArrayCandidats[i][0] = array[0].filter(num => {
+        if(!(tempColArray.indexOf(num) > -1)) {
+          return true;
+        }
+      });
+    });
 
     this.modified[rowNumber][colNumber][1] = this.modified[rowNumber][colNumber][1].filter(num => {
       if (!(tempColArray.indexOf(num) > -1) && num > 0) {
         return true;
       }
     });
+
+    this.countCandidats(tempColArrayCandidats);
 
   };
 
@@ -262,6 +270,7 @@ function solveSudoku(matrix) {
 
     let [cubeRow, cubeColumn] = this.modified[row][column][2];
     this.cubeMatrix[cubeRow][cubeColumn][0] = number;
+    this.numberInsered = true;
   };
 
   Sudoku.prototype.findCubePosition = function (row, column) {
@@ -283,7 +292,7 @@ function solveSudoku(matrix) {
       this.lonersIterator();
 
       console.log("================");
-      console.log(`Осталось: ${this.positions.length} позиций`);
+      console.log(`Осталось: ${this.positions.length} позиций == ${i} проход`);
       console.log(this.matrix);
     }
   };
@@ -295,6 +304,7 @@ function solveSudoku(matrix) {
       if (!this.modified[row][column][1]) continue;
 
       this.singleLoner(row, column, i);
+
     }
   };
 
@@ -303,7 +313,7 @@ function solveSudoku(matrix) {
 
     let requiredNumber = [];
 
-    if (row === 4 && column === 7) {
+    if (row === 7 && column === 1) {
       let a = "asb";
     }
 
