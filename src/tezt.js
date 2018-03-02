@@ -61,7 +61,7 @@ function solveSudoku(matrix) {
     this.modified = Array.prototype.slice.call(this.matrix);
     let iteratorEight = getIterator(8, 3, false);
     let iteratorEightForSecondParam = getIterator(8, 8, true);
-    let numberList = [1,2,3,4,5,6,7,8,9];
+    let numberList = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
     for (let i = 0, j = 0, k = 0, length = this.matrix.length; i < length; i++) {
       this.modified[i] = this.modified[i].map((currentCell, k) => {
@@ -69,7 +69,7 @@ function solveSudoku(matrix) {
           j = iteratorEight.next();
         }
         if (!this.cubeMatrix[j]) this.cubeMatrix[j] = [];
-        this.cubeMatrix[j].push([currentCell, [], [i,k]]);
+        this.cubeMatrix[j].push([currentCell, [], [i, k]]);
 
         //Возвращаем ячейку со значениями текуший номер, претенденты, адрес в кубе
         return [currentCell, currentCell ? false : Array.prototype.slice.call(numberList), [j, iteratorEightForSecondParam.next()]];
@@ -92,17 +92,56 @@ function solveSudoku(matrix) {
     }
   };
 
-  Sudoku.prototype.countCandidats = function (array) {
-    array.forEach(candidat => {
-      "use strict";
-      if(!this.candidatesCache[candidat] && candidat !== 0) this.candidatesCache[candidat] = 0;
-      this.candidatesCache[candidat]++;
-    })
+  Sudoku.prototype.clearCandidatesCache = function () {
+    "use strict";
+    this.candidatesCache = {};
+  };
+
+  Sudoku.prototype.countCandidats = function (candidat) {
+    for (let i = 0, max = candidat.length; i < max; i++) {
+      if (!candidat[i][0]) continue;
+      candidat[i][0].forEach(currentCandidat => {
+        if (!this.candidatesCache[currentCandidat] && candidat[i][0] !== 0) {
+          this.candidatesCache[currentCandidat] = [];
+          this.candidatesCache[currentCandidat][0] = 0;
+          this.candidatesCache[currentCandidat][1] = [];
+        }
+        else if (this.candidatesCache[currentCandidat][0] > 1) {
+          this.candidatesCache[currentCandidat][1] = false;
+          return true;
+        } else {
+          this.candidatesCache[currentCandidat][0]++;
+          this.candidatesCache[currentCandidat][1] = candidat[i][1];
+        }
+      })
+    }
+    console.log(this.candidatesCache);
+  };
+
+  Sudoku.prototype.findUniqueCandidate = function () {
+
+    let candidates = Object.keys(this.candidatesCache);
+    let result = [];
+
+    for (let i = 0, max = candidates.length; i < max; i++) {
+      if (this.candidatesCache[candidates[i]][0] === 1) {
+        result.push([candidates[i],this.candidatesCache[candidates[i]][1]]);
+      }
+    }
+
+    if(result.length === 1){
+      console.log("RESULT");
+      console.log(result);
+      return result[0];
+    }
+
+    this.clearCandidatesCache();
+    return false;
   };
 
   Sudoku.prototype.findInRow = function (row, col) {
     "use strict";
-    if(this.modified[row][col][1].length === 9) {
+    if (this.modified[row][col][1].length === 9) {
       this.modified[row][col][1] = (sudoku.diff(this.modified[row][col][1], (this.matrix[row]).filter(number => number > 0)));
     }
 
@@ -113,12 +152,12 @@ function solveSudoku(matrix) {
   };
 
 
-  Sudoku.prototype.findCandidatsInRow = function (row) {
+  Sudoku.prototype.findCandidatsInRow = function (row, column) {
     let tempArr = [];
-    for(let i = 0, max = this.modified[row].length; i < max; i++) {
+    for (let i = 0, max = this.modified[row].length; i < max; i++) {
       this.modified[row].forEach(candidat => {
         "use strict";
-        tempArr = tempArr.concat(candidat[1]);
+        tempArr.push([candidat[1], [row, column]]);
       });
     }
 
@@ -131,11 +170,11 @@ function solveSudoku(matrix) {
 
     let tempColArray = []; //Для обычных цифр
     let tempColArrayCandidats = []; //Кандидаты
-    this.modified.forEach(row => {
-      if(row[colNumber][0] > 0) {
+    this.modified.forEach((row, i) => {
+      if (row[colNumber][0] > 0) {
         tempColArray.push(row[colNumber][0]);
       } else {
-        tempColArrayCandidats = tempColArrayCandidats.concat(row[colNumber][1]);
+        tempColArrayCandidats.push([row[colNumber][1], [i, colNumber]]);
       }
 
       this.countCandidats(tempColArrayCandidats);
@@ -160,7 +199,7 @@ function solveSudoku(matrix) {
   Sudoku.prototype.cleanCubeCandidatNumbers = function (row, column) {
     this.cubeNumberCoords = this.cubeNumberCoords.filter(coords => {
       "use strict";
-      if(!(coords[0] ===  row || coords[1] === column)) {
+      if (!(coords[0] === row || coords[1] === column)) {
         return true;
       }
     })
@@ -175,11 +214,10 @@ function solveSudoku(matrix) {
     let tempArray = [];
 
     cubeArray.forEach((numberArray, i) => {
-      if(numberArray[0] > 0){
+      if (numberArray[0] > 0) {
         tempArray.push(numberArray[0]);
       } else {
         this.cubeNumberCoords.push(numberArray[2]);
-        console.log(this.cubeNumberCoords);
       }
 
     });
@@ -191,7 +229,7 @@ function solveSudoku(matrix) {
     tempArray.forEach(numbers => cubeNumbers.add(numbers));
 
     this.modified[row][column][1] = this.modified[row][column][1].filter(num => {
-      if(!(cubeNumbers.has(num))) {
+      if (!(cubeNumbers.has(num))) {
         return true;
       }
     });
@@ -202,14 +240,10 @@ function solveSudoku(matrix) {
     this.cubeNumberCoords.forEach(coords => {
       "use strict";
       let [row, column] = coords;
-      tempArr.push(this.modified[row][column][1]);
+      tempArr.push([this.modified[row][column][1], coords]);
     });
 
-    this.cubeNumberCoords(tempArr);
-  };
-
-  Sudoku.prototype.findUniqueCandidat = function () {
-    this.candidatesCache;
+    this.countCandidats(tempArr);
   };
 
   Sudoku.prototype.insertNumber = function (number, row, column) {
@@ -221,22 +255,22 @@ function solveSudoku(matrix) {
   };
 
   Sudoku.prototype.removeFromQueue = function (i) {
-      this.positions.splice(i, 1, false);
+    this.positions.splice(i, 1, false);
   };
 
   Sudoku.prototype.cycle = function (times) {
     let i = 0;
-    while(/*this.positions.length > 0 ||*/ i < times) {
-/*      if(i === 1) {
-        console.log("hey");
-      }*/
+    while (/*this.positions.length > 0 ||*/ i < times) {
+      /*      if(i === 1) {
+              console.log("hey");
+            }*/
       this.lonersIterator();
       i++;
     }
   };
 
-  Sudoku.prototype.lonersIterator = function  () {
-    for(let i = 0, max = this.positions.length; i < max; i++) {
+  Sudoku.prototype.lonersIterator = function () {
+    for (let i = 0, max = this.positions.length; i < max; i++) {
       let [row, column] = this.positions[i];
 
       this.singleLoner(row, column, i);
@@ -244,7 +278,7 @@ function solveSudoku(matrix) {
     }
     this.positions = this.positions.filter(item => item);
 
-    if(this.positionsCache === this.positions.length) {
+    if (this.positionsCache === this.positions.length) {
       this.hiddenLoner();
     }
 
@@ -258,56 +292,68 @@ function solveSudoku(matrix) {
     "use strict";
 
 
-
-
-
   };
 
   Sudoku.prototype.singleLoner = function (row, column, i) {
     "use strict";
 
-      this.findInRow(row, column);
-      this.findInCol(column, row);
-      this.findInCube(row, column);
+    let requiredNumber = [];
+
+    this.findInRow(row, column);
+    this.findCandidatsInRow(row, column);
+    this.findInCol(column, row);
+    this.findInCube(row, column);
+    this.findCandidatsInCube();
+
+    if (this.findUniqueCandidate()) {
+      requiredNumber = this.findUniqueCandidate();
+    }
 
 
+    if (this.modified[row][column][1].length === 1 || requiredNumber.length > 0) {
 
-      if(this.modified[row][column][1].length === 1) {
-        let number = this.modified[row][column][1][0];
-        this.insertNumber(number, row, column);
-        this.removeFromQueue(i);
+      let number;
+
+      if(requiredNumber.length) {
+        number = +requiredNumber[0];
+        row = requiredNumber[1][0];
+        column = requiredNumber[1][1];
+      } else {
+        number = this.modified[row][column][1][0];
       }
 
+      this.insertNumber(number, row, column);
+      this.removeFromQueue(i);
+    }
 
 
-       console.log(`${this.modified[row][column][0]} : Position: [${row}][${column}] Estimated: ${this.modified[row][column][1]}`);
+    console.log(`${this.modified[row][column][0]} : Position: [${row}][${column}] Estimated: ${this.modified[row][column][1]}`);
 
-      /* if(i ==15) {
-         break;
-       }*/
+    /* if(i ==15) {
+       break;
+     }*/
   };
 
-  sudoku.diff = function (arr1,arr2) {
+  sudoku.diff = function (arr1, arr2) {
     "use strict";
-    return arr1.filter(el => arr2.indexOf(el) === -1).concat(arr2.filter(el => arr1.indexOf(el)===-1));
+    return arr1.filter(el => arr2.indexOf(el) === -1).concat(arr2.filter(el => arr1.indexOf(el) === -1));
   };
 
 
   sudoku.initializeMatrix();
-  sudoku.cycle(5);
+  sudoku.cycle(10);
 
 }
 
 
-
 let sudoku2 = [[6, 5, 0, 7, 3, 0, 0, 8, 0],
-               [0, 0, 0, 4, 8, 0, 5, 3, 0],
-               [8, 4, 0, 9, 2, 5, 0, 0, 0],
-               [0, 9, 0, 8, 0, 0, 0, 0, 0],
-               [5, 3, 0, 2, 0, 9, 6, 0, 0],
-               [0, 0, 6, 0, 0, 0, 8, 0, 0],
-               [0, 0, 9, 0, 0, 0, 0, 0, 6],
-               [0, 0, 7, 0, 0, 0, 0, 5, 0],
-               [1, 6, 5, 3, 9, 0, 4, 7, 0]];
+  [0, 0, 0, 4, 8, 0, 5, 3, 0],
+  [8, 4, 0, 9, 2, 5, 0, 0, 0],
+  [0, 9, 0, 8, 0, 0, 0, 0, 0],
+  [5, 3, 0, 2, 0, 9, 6, 0, 0],
+  [0, 0, 6, 0, 0, 0, 8, 0, 0],
+  [0, 0, 9, 0, 0, 0, 0, 0, 6],
+  [0, 0, 7, 0, 0, 0, 0, 5, 0],
+  [1, 6, 5, 3, 9, 0, 4, 7, 0]];
 
 solveSudoku(sudoku2);
