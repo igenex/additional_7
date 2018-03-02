@@ -10,6 +10,7 @@ function solveSudoku(matrix) {
     this.modified = [];
     this.positionsCache = 0;
     this.candidatesCache = {};
+    this.cubeNumberCoords = [];
 
   }
 
@@ -156,6 +157,15 @@ function solveSudoku(matrix) {
 
   };
 
+  Sudoku.prototype.cleanCubeCandidatNumbers = function (row, column) {
+    this.cubeNumberCoords = this.cubeNumberCoords.filter(coords => {
+      "use strict";
+      if(!(coords[0] ===  row || coords[1] === column)) {
+        return true;
+      }
+    })
+  };
+
 
   Sudoku.prototype.findInCube = function (row, column) {
     "use strict";
@@ -163,11 +173,19 @@ function solveSudoku(matrix) {
     let cubeArray = this.cubeMatrix[cubePosition];
 
     let tempArray = [];
+
     cubeArray.forEach((numberArray, i) => {
       if(numberArray[0] > 0){
         tempArray.push(numberArray[0]);
+      } else {
+        this.cubeNumberCoords.push(numberArray[2]);
+        console.log(this.cubeNumberCoords);
       }
+
     });
+
+    //Чистим массив с координатами в кубе от координат чисел которые уже есть в кэше
+    this.cleanCubeCandidatNumbers(row, column);
 
     let cubeNumbers = new Set();
     tempArray.forEach(numbers => cubeNumbers.add(numbers));
@@ -177,6 +195,21 @@ function solveSudoku(matrix) {
         return true;
       }
     });
+  };
+
+  Sudoku.prototype.findCandidatsInCube = function () {
+    let tempArr = [];
+    this.cubeNumberCoords.forEach(coords => {
+      "use strict";
+      let [row, column] = coords;
+      tempArr.push(this.modified[row][column][1]);
+    });
+
+    this.cubeNumberCoords(tempArr);
+  };
+
+  Sudoku.prototype.findUniqueCandidat = function () {
+    this.candidatesCache;
   };
 
   Sudoku.prototype.insertNumber = function (number, row, column) {
