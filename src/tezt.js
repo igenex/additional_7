@@ -91,6 +91,14 @@ function solveSudoku(matrix) {
     }
   };
 
+  Sudoku.prototype.countCandidats = function (array) {
+    array.forEach(candidat => {
+      "use strict";
+      if(!this.candidatesCache[candidat] && candidat !== 0) this.candidatesCache[candidat] = 0;
+      this.candidatesCache[candidat]++;
+    })
+  };
+
   Sudoku.prototype.findInRow = function (row, col) {
     "use strict";
     if(this.modified[row][col][1].length === 9) {
@@ -99,18 +107,38 @@ function solveSudoku(matrix) {
 
     this.modified[row][col][1] = this.modified[row][col][1].filter(number => {
       if (!(this.matrix[row].indexOf(number) > 1)) return true;
-    })
+    });
 
   };
+
+
+  Sudoku.prototype.findCandidatsInRow = function (row) {
+    let tempArr = [];
+    for(let i = 0, max = this.modified[row].length; i < max; i++) {
+      this.modified[row].forEach(candidat => {
+        "use strict";
+        tempArr = tempArr.concat(candidat[1]);
+      });
+    }
+
+    this.countCandidats(tempArr);
+  };
+
 
   Sudoku.prototype.findInCol = function (colNumber, rowNumber) {
     "use strict";
 
-    let tempColArray = [];
-    this.matrix.forEach(row => {
-      if(row[colNumber] > 0) {
-        tempColArray.push(row[colNumber]);
+    let tempColArray = []; //Для обычных цифр
+    let tempColArrayCandidats = []; //Кандидаты
+    this.modified.forEach(row => {
+      if(row[colNumber][0] > 0) {
+        tempColArray.push(row[colNumber][0]);
+      } else {
+        tempColArrayCandidats = tempColArrayCandidats.concat(row[colNumber][1]);
       }
+
+      this.countCandidats(tempColArrayCandidats);
+
     });
 
 
