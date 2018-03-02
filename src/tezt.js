@@ -11,6 +11,8 @@ function solveSudoku(matrix) {
     this.positionsCache = 0;
     this.candidatesCache = {};
     this.cubeNumberCoords = [];
+    this.hiddenLoner = false;
+    this.error = [];
 
   }
 
@@ -106,7 +108,8 @@ function solveSudoku(matrix) {
           this.candidatesCache[currentCandidat][0] = 0;
           this.candidatesCache[currentCandidat][1] = [];
         }
-        else if (this.candidatesCache[currentCandidat][0] > 1) {
+
+        if (this.candidatesCache[currentCandidat][0] > 1) {
           this.candidatesCache[currentCandidat][1] = false;
           return true;
         } else {
@@ -143,23 +146,27 @@ function solveSudoku(matrix) {
     "use strict";
     if (this.modified[row][col][1].length === 9) {
       this.modified[row][col][1] = (sudoku.diff(this.modified[row][col][1], (this.matrix[row]).filter(number => number > 0)));
+    } else {
+      try{
+      this.modified[row][col][1] = this.modified[row][col][1].filter(number => {
+        if (!(this.matrix[row].indexOf(number) > 1)) return true;
+      });
+      } catch (e) {
+        console.log(this.positions);
+        console.log(`Ошибка ${e}! Координаты ${row} - ${col}`);
+        this.error.push(e, "Значение уже заполнено")
+      }
     }
-
-    this.modified[row][col][1] = this.modified[row][col][1].filter(number => {
-      if (!(this.matrix[row].indexOf(number) > 1)) return true;
-    });
 
   };
 
 
-  Sudoku.prototype.findCandidatsInRow = function (row, column) {
+  Sudoku.prototype.findCandidatsInRow = function (row) {
     let tempArr = [];
-    for (let i = 0, max = this.modified[row].length; i < max; i++) {
-      this.modified[row].forEach(candidat => {
+      this.modified[row].forEach((candidat, i) => {
         "use strict";
-        tempArr.push([candidat[1], [row, column]]);
+        if(candidat[1]) tempArr.push([candidat[1], [row, i]]);
       });
-    }
 
     this.countCandidats(tempArr);
   };
@@ -173,13 +180,11 @@ function solveSudoku(matrix) {
     this.modified.forEach((row, i) => {
       if (row[colNumber][0] > 0) {
         tempColArray.push(row[colNumber][0]);
-      } else {
-        tempColArrayCandidats.push([row[colNumber][1], [i, colNumber]]);
       }
-
-      this.countCandidats(tempColArrayCandidats);
-
+      tempColArrayCandidats.push([row[colNumber][1], [i, colNumber]]);
     });
+
+    this.countCandidats(tempColArrayCandidats);
 
 
     return new Promise((resolve, reject) => {
@@ -216,10 +221,9 @@ function solveSudoku(matrix) {
     cubeArray.forEach((numberArray, i) => {
       if (numberArray[0] > 0) {
         tempArray.push(numberArray[0]);
-      } else {
-        this.cubeNumberCoords.push(numberArray[2]);
       }
 
+      this.cubeNumberCoords.push(numberArray[2]);
     });
 
     //Чистим массив с координатами в кубе от координат чисел которые уже есть в кэше
@@ -249,6 +253,7 @@ function solveSudoku(matrix) {
   Sudoku.prototype.insertNumber = function (number, row, column) {
     this.matrix[row][column] = number;
     this.modified[row][column][0] = number;
+    this.modified[row][column][1] = false;
 
     let [cubeRow, cubeColumn] = this.modified[row][column][2];
     this.cubeMatrix[cubeRow][cubeColumn][0] = number;
@@ -261,11 +266,15 @@ function solveSudoku(matrix) {
   Sudoku.prototype.cycle = function (times) {
     let i = 0;
     while (/*this.positions.length > 0 ||*/ i < times) {
-      /*      if(i === 1) {
-              console.log("hey");
-            }*/
-      this.lonersIterator();
       i++;
+      this.hiddenLoner = (this.positionsCache === this.positions.length);
+      this.positions = this.positions.filter(item => item);
+      this.lonersIterator();
+
+      this.positionsCache = this.positions.length;
+      console.log("================");
+      console.log(`Осталось: ${this.positions.length} позиций`);
+      console.log(this.matrix);
     }
   };
 
@@ -273,25 +282,11 @@ function solveSudoku(matrix) {
     for (let i = 0, max = this.positions.length; i < max; i++) {
       let [row, column] = this.positions[i];
 
+      if(!this.modified[row][column][1]) continue;
+
       this.singleLoner(row, column, i);
 
     }
-    this.positions = this.positions.filter(item => item);
-
-    if (this.positionsCache === this.positions.length) {
-      this.hiddenLoner();
-    }
-
-    this.positionsCache = this.positions.length;
-    console.log("================");
-    console.log(`Осталось: ${this.positions.length} позиций`);
-    console.log(this.matrix);
-  };
-
-  Sudoku.prototype.hiddenLoner = function (row, column) {
-    "use strict";
-
-
   };
 
   Sudoku.prototype.singleLoner = function (row, column, i) {
@@ -299,14 +294,22 @@ function solveSudoku(matrix) {
 
     let requiredNumber = [];
 
+    if(row === 2 && column === 2) {
+      console.log(123);
+    }
+
     this.findInRow(row, column);
     this.findCandidatsInRow(row, column);
     this.findInCol(column, row);
     this.findInCube(row, column);
-    this.findCandidatsInCube();
 
-    if (this.findUniqueCandidate()) {
-      requiredNumber = this.findUniqueCandidate();
+    if(!this.hiddenLoner) {
+      this.findCandidatsInCube();
+      if (this.findUniqueCandidate()) {
+        requiredNumber = this.findUniqueCandidate();
+      }
+    } else {
+      this.clearCandidatesCache();
     }
 
 
@@ -341,7 +344,7 @@ function solveSudoku(matrix) {
 
 
   sudoku.initializeMatrix();
-  sudoku.cycle(10);
+  sudoku.cycle(2);
 
 }
 
