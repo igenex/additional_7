@@ -191,14 +191,14 @@ module.exports =
           tempColArray.push(row[colNumber][0]);
         }
 
-        if (/*i !== rowNumber && */row[colNumber][1]) {
+        if (row[colNumber][1]) {
           tempColArrayCandidats.push([row[colNumber][1], [i, colNumber]]);
         }
       });
 
       tempColArrayCandidats.forEach((array, i) => {
         tempColArrayCandidats[i][0] = array[0].filter(num => {
-          if(!(tempColArray.indexOf(num) > -1)) {
+          if (!(tempColArray.indexOf(num) > -1)) {
             return true;
           }
         });
@@ -283,15 +283,20 @@ module.exports =
     };
 
     Sudoku.prototype.cycle = function (times) {
+      let result = [];
       let i = 0;
-      while (i < 4) {
+      while (i < 5) {
         i++;
         this.hiddenLoner = (this.positionsCache === this.positions.length);
         this.positions = this.positions.filter(item => item);
         this.positionsCache = this.positions.length;
+
         this.lonersIterator();
       }
-      return this.matrix;
+      if(this.hiddenLoner) {
+        result = this.goatInGoalMode(this.matrix)
+      }
+      return result;
     };
 
     Sudoku.prototype.lonersIterator = function () {
@@ -303,6 +308,47 @@ module.exports =
         this.singleLoner(row, column, i);
 
       }
+    };
+
+    Sudoku.prototype.goatInGoalMode = function () {
+
+      function traverse(matrix) {
+        let check = 0;
+        function test(matrix, index) {
+          if (index > 80) { check = 1; return;}
+          let i = Math.floor(index / 9), j = index % 9;
+          if (matrix[i][j] !== 0) return test(matrix, index + 1);
+          for (let v = 1; v <= 9; v++) {
+            if (isTrue(i, j, matrix, v)) {
+              matrix[i][j] = v;
+              test(matrix, index + 1);
+            }
+          }
+          if (check === 0) matrix[i][j] = 0;
+        }
+
+        test(matrix, 0);
+        return matrix;
+      }
+
+      function isTrue(i, j, matrix, num) {
+        for (let k = 0; k < matrix[i].length; k++) {
+          if (matrix[i][k] === num)
+            return false;
+        }
+        for (let k = 0; k < matrix.length; k++) {
+          if (matrix[k][j] === num)
+            return false;
+        }
+        let cw = Math.floor(i / 3), ch = Math.floor(j / 3);
+        for (let k = 3 * cw; k < 3 * cw + 3; k++) {
+          for (let l = 3 * ch; l < 3 * ch + 3; l++) {
+            if (matrix[k][l] === num) return false;
+          }
+        }
+        return true;
+      }
+      return traverse(matrix);
     };
 
     Sudoku.prototype.singleLoner = function (row, column, i) {
